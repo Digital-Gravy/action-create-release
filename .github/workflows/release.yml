@@ -1,0 +1,69 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if release exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          if gh release view "$TAG_NAME" &>/dev/null; then
+            echo "::error::Release $TAG_NAME already exists!"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Push dist directory
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git fetch origin main
+          git checkout main
+          git add dist
+          git commit -m "build: update dist directory" || echo "No changes to commit"
+          git push origin main
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          MAJOR_VERSION=$(echo $TAG_NAME | grep -o '^v[0-9]\+')
+
+          # Create or update major version tag
+          git tag -fa "${MAJOR_VERSION}" -m "Update ${MAJOR_VERSION} tag"
+          git push origin "${MAJOR_VERSION}" --force
+
+          # Create GitHub release without draft and auto-generate release notes
+          gh release create "$TAG_NAME" \
+            --title "Release $TAG_NAME" \
+            --generate-notes

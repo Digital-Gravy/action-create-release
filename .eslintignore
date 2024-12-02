@@ -1,0 +1,12 @@
+# Compiled code
+dist/
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependencies
+node_modules/
+
+# Jest config files
+jest.config.js
+jest.setup.js

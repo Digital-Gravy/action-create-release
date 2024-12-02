@@ -1,0 +1,32 @@
+# action.yml
+name: Create Release
+description: Create a GitHub release
+
+inputs:
+  version:
+    description: 'Version to create release for'
+    required: true
+  release_notes:
+    description: 'Release notes text'
+    required: true
+  files:
+    description: 'Comma-separated list of files to attach to the release'
+    required: false
+  should_commit:
+    description: 'Whether to commit version bump changes'
+    required: false
+    type: boolean
+  plugin_path:
+    description: 'Path to the plugin file to commit when should_commit is true'
+    required: false
+  github_token:
+    description: 'GitHub token for authentication'
+    required: true
+
+outputs:
+  release_url:
+    description: 'URL of the created release'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
