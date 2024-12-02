@@ -32487,6 +32487,16 @@ class ReleaseCreator {
 
   async createRelease() {
     try {
+      // Verify files exist before proceeding
+      if (this.files.length > 0) {
+        const fs = __nccwpck_require__(9896);
+        for (const file of this.files) {
+          if (!fs.existsSync(file)) {
+            throw new Error(`Release asset not found: ${file}`);
+          }
+        }
+      }
+
       if (this.shouldCommit) {
         if (!this.pluginPath) {
           throw new Error('plugin_path is required when should_commit is true');
