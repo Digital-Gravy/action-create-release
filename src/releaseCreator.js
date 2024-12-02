@@ -30,7 +30,7 @@ class ReleaseCreator {
       if (this.files.length > 0) {
         const fs = require('fs');
         for (const file of this.files) {
-          if (!fs.existsSync(file)) {
+          if (!file || !fs.existsSync(file)) {
             throw new Error(`Release asset not found: ${file}`);
           }
         }
