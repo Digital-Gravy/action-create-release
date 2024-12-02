@@ -1,4 +1,5 @@
 const ReleaseCreator = require('../src/releaseCreator');
+jest.mock('fs');
 
 describe('ReleaseCreator', () => {
   let releaseCreator;
@@ -6,6 +7,8 @@ describe('ReleaseCreator', () => {
   let mockGit;
 
   beforeEach(() => {
+    jest.spyOn(require('fs'), 'existsSync').mockReturnValue(true);
+
     // Mock GitHub API
     mockGitHub = {
       createRelease: jest.fn(),
@@ -258,6 +261,25 @@ describe('ReleaseCreator', () => {
 
       expect(result.success).toBe(true);
       expect(mockGit.commit).not.toHaveBeenCalled();
+    });
+
+    test('should fail if release asset file does not exist', async () => {
+      jest.spyOn(require('fs'), 'existsSync').mockReturnValue(false);
+
+      releaseCreator = new ReleaseCreator({
+        github: mockGitHub,
+        git: mockGit,
+        version: '1.0.0',
+        releaseNotes: 'Test release notes',
+        files: ['non-existent-file.zip'],
+        shouldCommit: false,
+      });
+
+      const result = await releaseCreator.createRelease();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Release asset not found: non-existent-file.zip');
+      expect(mockGitHub.createRelease).not.toHaveBeenCalled();
     });
   });
 });
