@@ -32491,7 +32491,7 @@ class ReleaseCreator {
       if (this.files.length > 0) {
         const fs = __nccwpck_require__(9896);
         for (const file of this.files) {
-          if (!fs.existsSync(file)) {
+          if (!file || !fs.existsSync(file)) {
             throw new Error(`Release asset not found: ${file}`);
           }
         }
