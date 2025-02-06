@@ -281,5 +281,29 @@ describe('ReleaseCreator', () => {
       expect(result.error).toBe('Release asset not found: non-existent-file.zip');
       expect(mockGitHub.createRelease).not.toHaveBeenCalled();
     });
+
+    test('should only rollback own version bump commit if release fails', async () => {
+      releaseCreator = new ReleaseCreator({
+        github: mockGitHub,
+        git: mockGit,
+        version: '1.0.0',
+        releaseNotes: 'Test release notes',
+        files: ['dist/plugin.zip'],
+        shouldCommit: true,
+        pluginPath: 'path/to/plugin.php',
+      });
+
+      const versionBumpCommitHash = 'abc123';
+      mockGit.commit.mockResolvedValue(versionBumpCommitHash);
+      mockGit.push.mockResolvedValue(true);
+      mockGitHub.createRelease.mockRejectedValue(new Error('Release failed'));
+
+      const result = await releaseCreator.createRelease();
+
+      expect(mockGit.commit).toHaveBeenCalled();
+      expect(mockGit.push).toHaveBeenCalled();
+      expect(mockGit.revert).toHaveBeenCalledWith(versionBumpCommitHash);
+      expect(result.success).toBe(false);
+    });
   });
 });

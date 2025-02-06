@@ -25,6 +25,7 @@ class ReleaseCreator {
   }
 
   async createRelease() {
+    let versionBumpCommit = null;
     try {
       // Verify files exist before proceeding
       if (this.files.length > 0) {
@@ -40,7 +41,7 @@ class ReleaseCreator {
         if (!this.pluginPath) {
           throw new Error('plugin_path is required when should_commit is true');
         }
-        await this.git.commit();
+        versionBumpCommit = await this.git.commit();
         await this.git.push();
       }
 
@@ -61,8 +62,8 @@ class ReleaseCreator {
         url,
       };
     } catch (error) {
-      if (this.shouldCommit) {
-        await this.git.revert();
+      if (this.shouldCommit && versionBumpCommit) {
+        await this.git.revert(versionBumpCommit);
       }
 
       return {

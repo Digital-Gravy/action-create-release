@@ -52,13 +52,29 @@ async function run() {
         await exec('git', ['config', 'user.name', 'github-actions']);
         await exec('git', ['config', 'user.email', 'github-actions@github.com']);
         await exec('git', ['add', pluginPath]);
-        await exec('git', ['commit', '-m', `Bump version to ${version}`]);
+
+        let commitHash = '';
+        await exec('git', ['commit', '-m', `Bump version to ${version}`], {
+          listeners: {
+            stdout: (data) => {
+              commitHash += data.toString().trim();
+            },
+          },
+        });
+
+        // Extract commit hash from the git commit output
+        // The output is typically in the format: [branch hash] Commit message
+        const match = commitHash.match(/[[\w\-.]+ ([a-f0-9]+)]/);
+        return match ? match[1] : null;
       },
       async push() {
         await exec('git', ['push', 'origin', 'HEAD']);
       },
-      async revert() {
-        await exec('git', ['revert', 'HEAD']);
+      async revert(commitHash) {
+        if (!commitHash) {
+          throw new Error('No commit hash provided for revert');
+        }
+        await exec('git', ['revert', '--no-edit', commitHash]);
         await exec('git', ['push', 'origin', 'HEAD']);
       },
     };
