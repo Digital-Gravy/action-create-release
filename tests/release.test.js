@@ -305,5 +305,54 @@ describe('ReleaseCreator', () => {
       expect(mockGit.revert).toHaveBeenCalledWith(versionBumpCommitHash);
       expect(result.success).toBe(false);
     });
+
+    test('should not attempt to revert bump commit if no version bump is needed', async () => {
+      releaseCreator = new ReleaseCreator({
+        github: mockGitHub,
+        git: mockGit,
+        version: '1.0.0',
+        releaseNotes: 'Test release notes',
+        files: ['dist/plugin.zip'],
+        shouldCommit: true,
+        pluginPath: 'path/to/plugin.php',
+      });
+
+      // Mock git commit returning null (no changes to commit)
+      mockGit.commit.mockResolvedValue(null);
+      mockGit.push.mockResolvedValue(true);
+      mockGitHub.createRelease.mockResolvedValue({ id: '123' });
+      mockGitHub.getReleaseUrl.mockResolvedValue('https://github.com/org/repo/releases/1.0.0');
+
+      const result = await releaseCreator.createRelease();
+
+      expect(mockGit.commit).toHaveBeenCalled();
+      expect(mockGit.push).toHaveBeenCalled();
+      expect(mockGit.revert).not.toHaveBeenCalled(); // Should not attempt to revert
+      expect(result.success).toBe(true);
+    });
+
+    test('should only revert if commit was actually created', async () => {
+      releaseCreator = new ReleaseCreator({
+        github: mockGitHub,
+        git: mockGit,
+        version: '1.0.0',
+        releaseNotes: 'Test release notes',
+        files: ['dist/plugin.zip'],
+        shouldCommit: true,
+        pluginPath: 'path/to/plugin.php',
+      });
+
+      // Mock git commit returning null (no changes to commit)
+      mockGit.commit.mockResolvedValue(null);
+      mockGit.push.mockResolvedValue(true);
+      mockGitHub.createRelease.mockRejectedValue(new Error('Release failed'));
+
+      const result = await releaseCreator.createRelease();
+
+      expect(mockGit.commit).toHaveBeenCalled();
+      expect(mockGit.push).toHaveBeenCalled();
+      expect(mockGit.revert).not.toHaveBeenCalled(); // Should not attempt to revert
+      expect(result.success).toBe(false);
+    });
   });
 });

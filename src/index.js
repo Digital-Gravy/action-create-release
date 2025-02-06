@@ -53,27 +53,48 @@ async function run() {
         await exec('git', ['config', 'user.email', 'github-actions@github.com']);
         await exec('git', ['add', pluginPath]);
 
-        let commitHash = '';
-        await exec('git', ['commit', '-m', `Bump version to ${version}`], {
-          listeners: {
-            stdout: (data) => {
-              commitHash += data.toString().trim();
+        let commitOutput = '';
+        try {
+          await exec('git', ['commit', '-m', `Bump version to ${version}`], {
+            listeners: {
+              stdout: (data) => {
+                commitOutput += data.toString();
+              },
+              stderr: (data) => {
+                commitOutput += data.toString();
+              },
             },
-          },
-        });
+          });
 
-        // Extract commit hash from the git commit output
-        // The output is typically in the format: [branch hash] Commit message
-        const match = commitHash.match(/[[\w\-.]+ ([a-f0-9]+)]/);
-        return match ? match[1] : null;
+          core.debug(`Git commit output: ${commitOutput}`);
+
+          // Only look for commit hash if we see the exact commit message we created
+          if (commitOutput.includes(`Bump version to ${version}`)) {
+            const match = commitOutput.match(/\[[\w\-.]+ ([a-f0-9]+)]/);
+            const commitHash = match ? match[1] : null;
+            core.debug(`Found commit hash: ${commitHash}`);
+            return commitHash;
+          }
+          core.debug('No version bump commit was created');
+          return null;
+        } catch (error) {
+          // Check if it's just "nothing to commit" case
+          if (commitOutput.includes('nothing to commit')) {
+            core.debug('Nothing to commit - no changes detected');
+            return null;
+          }
+          throw error;
+        }
       },
       async push() {
         await exec('git', ['push', 'origin', 'HEAD']);
       },
       async revert(commitHash) {
         if (!commitHash) {
-          throw new Error('No commit hash provided for revert');
+          core.debug('No commit hash provided - skipping revert');
+          return;
         }
+        core.debug(`Reverting commit: ${commitHash}`);
         await exec('git', ['revert', '--no-edit', commitHash]);
         await exec('git', ['push', 'origin', 'HEAD']);
       },
