@@ -32486,6 +32486,7 @@ class ReleaseCreator {
   }
 
   async createRelease() {
+    let versionBumpCommit = null;
     try {
       // Verify files exist before proceeding
       if (this.files.length > 0) {
@@ -32501,7 +32502,7 @@ class ReleaseCreator {
         if (!this.pluginPath) {
           throw new Error('plugin_path is required when should_commit is true');
         }
-        await this.git.commit();
+        versionBumpCommit = await this.git.commit();
         await this.git.push();
       }
 
@@ -32522,8 +32523,8 @@ class ReleaseCreator {
         url,
       };
     } catch (error) {
-      if (this.shouldCommit) {
-        await this.git.revert();
+      if (this.shouldCommit && versionBumpCommit) {
+        await this.git.revert(versionBumpCommit);
       }
 
       return {
@@ -34497,14 +34498,66 @@ async function run() {
         await exec('git', ['config', 'user.name', 'github-actions']);
         await exec('git', ['config', 'user.email', 'github-actions@github.com']);
         await exec('git', ['add', pluginPath]);
-        await exec('git', ['commit', '-m', `Bump version to ${version}`]);
+
+        let commitOutput = '';
+        try {
+          await exec('git', ['commit', '-m', `Bump version to ${version}`], {
+            listeners: {
+              stdout: (data) => {
+                commitOutput += data.toString();
+              },
+              stderr: (data) => {
+                commitOutput += data.toString();
+              },
+            },
+          });
+
+          core.debug(`Git commit output: ${commitOutput}`);
+
+          // If we see "nothing to commit", return null immediately
+          if (commitOutput.includes('nothing to commit')) {
+            core.debug('Nothing to commit - no changes detected');
+            return null;
+          }
+
+          // For a successful commit, we should see both:
+          // 1. Our exact commit message
+          // 2. A commit hash in the standard git output format
+          const hasOurMessage = commitOutput.includes(`Bump version to ${version}`);
+          const match = commitOutput.match(/\[[\w\-.]+ ([a-f0-9]+)]/);
+
+          if (hasOurMessage && match) {
+            const commitHash = match[1];
+            core.debug(`Found our version bump commit: ${commitHash}`);
+            return commitHash;
+          }
+
+          core.debug('Commit output did not match expected version bump pattern');
+          return null;
+        } catch (error) {
+          core.debug(`Git commit error: ${error.message}`);
+          if (commitOutput.includes('nothing to commit')) {
+            return null;
+          }
+          throw error;
+        }
       },
       async push() {
         await exec('git', ['push', 'origin', 'HEAD']);
       },
-      async revert() {
-        await exec('git', ['revert', 'HEAD']);
-        await exec('git', ['push', 'origin', 'HEAD']);
+      async revert(commitHash) {
+        if (!commitHash) {
+          core.debug('No commit hash provided - skipping revert');
+          return;
+        }
+        core.debug(`Attempting to revert commit: ${commitHash}`);
+        try {
+          await exec('git', ['revert', '--no-edit', commitHash]);
+          await exec('git', ['push', 'origin', 'HEAD']);
+        } catch (error) {
+          core.debug(`Revert failed: ${error.message}`);
+          throw error;
+        }
       },
     };
 
