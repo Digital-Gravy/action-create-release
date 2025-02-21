@@ -32530,11 +32530,8 @@ class ReleaseCreator {
 
       // Add specific error handling for existing release
       if (error.message?.includes('"code":"already_exists"')) {
-        errorMessage = `A release with version ${this.version} already exists. Here's how to fix this:
-
-1. If this version was **never** released to our customers, you can delete the existing GitHub release + tag, and try again.
-2. Otherwise, you'll need to do a new release that increases the version number.
-`;
+        errorMessage = `A release with version ${this.version} already exists. If this version was **never** released to our customers, you can delete the existing GitHub release + tag, and try again.
+Otherwise, you'll need to do a new release that increases the version number.`;
       }
 
       return {
