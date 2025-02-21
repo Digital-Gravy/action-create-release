@@ -32526,10 +32526,16 @@ class ReleaseCreator {
       if (this.shouldCommit && versionBumpCommit) {
         await this.git.revert(versionBumpCommit);
       }
+      let errorMessage = error.message;
+
+      // Add specific error handling for existing release
+      if (error.message?.includes('"code":"already_exists"')) {
+        errorMessage = `A release with version ${this.version} already exists. If this version was never released to our customers, you can delete the existing GitHub release and try again.`;
+      }
 
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
