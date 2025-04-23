@@ -32462,7 +32462,16 @@ function wrappy (fn, cb) {
 const semver = __nccwpck_require__(2088);
 
 class ReleaseCreator {
-  constructor({ github, git, version, releaseNotes, files, shouldCommit, pluginPath }) {
+  constructor({
+    github,
+    git,
+    version,
+    releaseNotes,
+    files,
+    shouldCommit,
+    pluginPath,
+    surecartReleasePath,
+  }) {
     this.github = github;
     this.git = git;
     this.version = version;
@@ -32470,6 +32479,7 @@ class ReleaseCreator {
     this.files = files.filter(Boolean);
     this.shouldCommit = shouldCommit;
     this.pluginPath = pluginPath;
+    this.surecartReleasePath = surecartReleasePath;
   }
 
   isPrerelease() {
@@ -32501,6 +32511,11 @@ class ReleaseCreator {
       if (this.shouldCommit) {
         if (!this.pluginPath) {
           throw new Error('plugin_path is required when should_commit is true');
+        }
+        await this.git.setupCommit();
+        await this.git.addPluginFile();
+        if (this.surecartReleasePath) {
+          await this.git.addSureCartReleaseFile();
         }
         versionBumpCommit = await this.git.commit();
         await this.git.push();
@@ -34463,6 +34478,7 @@ async function run() {
     const files = core.getInput('files').split(',');
     const shouldCommit = core.getBooleanInput('should_commit');
     const pluginPath = core.getInput('plugin_path');
+    const surecartReleasePath = core.getInput('surecart_release_path');
     const token = core.getInput('github_token', { required: true });
 
     const octokit = github.getOctokit(token);
@@ -34501,11 +34517,17 @@ async function run() {
     };
 
     const gitApi = {
-      async commit() {
+      async setupCommit() {
         await exec('git', ['config', 'user.name', 'github-actions']);
         await exec('git', ['config', 'user.email', 'github-actions@github.com']);
+      },
+      async addPluginFile() {
         await exec('git', ['add', pluginPath]);
-
+      },
+      async addSureCartReleaseFile() {
+        await exec('git', ['add', surecartReleasePath]);
+      },
+      async commit() {
         let commitOutput = '';
         try {
           await exec('git', ['commit', '-m', `Bump version to ${version}`], {
@@ -34576,6 +34598,7 @@ async function run() {
       files,
       shouldCommit,
       pluginPath,
+      surecartReleasePath,
     });
 
     const result = await releaseCreator.createRelease();
