@@ -19,6 +19,9 @@ inputs:
   plugin_path:
     description: 'Path to the plugin file to commit when should_commit is true'
     required: false
+  surecart_release_path:
+    description: 'Path to SureCart\'s release.json file to commit when should_commit is true'
+    required: false
   github_token:
     description: 'GitHub token for authentication'
     required: true

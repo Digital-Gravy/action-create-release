@@ -18,6 +18,9 @@ describe('ReleaseCreator', () => {
 
     // Mock Git operations
     mockGit = {
+      setupCommit: jest.fn(),
+      addPluginFile: jest.fn(),
+      addSureCartReleaseFile: jest.fn(),
       commit: jest.fn(),
       push: jest.fn(),
       revert: jest.fn(),
@@ -353,6 +356,39 @@ describe('ReleaseCreator', () => {
       expect(mockGit.push).toHaveBeenCalled();
       expect(mockGit.revert).not.toHaveBeenCalled(); // Should not attempt to revert
       expect(result.success).toBe(false);
+    });
+
+    test('should commit surecart release file when provided', async () => {
+      releaseCreator = new ReleaseCreator({
+        github: mockGitHub,
+        git: mockGit,
+        version: '1.0.0',
+        releaseNotes: 'Test release notes',
+        files: ['dist/plugin.zip'],
+        shouldCommit: true,
+        pluginPath: 'path/to/plugin.php',
+        surecartReleasePath: 'path/to/release.json',
+      });
+
+      await releaseCreator.createRelease();
+
+      expect(mockGit.addSureCartReleaseFile).toHaveBeenCalled();
+    });
+
+    test('should not attempt to commit surecart release file if not provided', async () => {
+      releaseCreator = new ReleaseCreator({
+        github: mockGitHub,
+        git: mockGit,
+        version: '1.0.0',
+        releaseNotes: 'Test release notes',
+        files: ['dist/plugin.zip'],
+        shouldCommit: true,
+        pluginPath: 'path/to/plugin.php',
+      });
+
+      await releaseCreator.createRelease();
+
+      expect(mockGit.addSureCartReleaseFile).not.toHaveBeenCalled();
     });
   });
 });

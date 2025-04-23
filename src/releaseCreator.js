@@ -1,7 +1,16 @@
 const semver = require('semver');
 
 class ReleaseCreator {
-  constructor({ github, git, version, releaseNotes, files, shouldCommit, pluginPath }) {
+  constructor({
+    github,
+    git,
+    version,
+    releaseNotes,
+    files,
+    shouldCommit,
+    pluginPath,
+    surecartReleasePath,
+  }) {
     this.github = github;
     this.git = git;
     this.version = version;
@@ -9,6 +18,7 @@ class ReleaseCreator {
     this.files = files.filter(Boolean);
     this.shouldCommit = shouldCommit;
     this.pluginPath = pluginPath;
+    this.surecartReleasePath = surecartReleasePath;
   }
 
   isPrerelease() {
@@ -40,6 +50,11 @@ class ReleaseCreator {
       if (this.shouldCommit) {
         if (!this.pluginPath) {
           throw new Error('plugin_path is required when should_commit is true');
+        }
+        await this.git.setupCommit();
+        await this.git.addPluginFile();
+        if (this.surecartReleasePath) {
+          await this.git.addSureCartReleaseFile();
         }
         versionBumpCommit = await this.git.commit();
         await this.git.push();

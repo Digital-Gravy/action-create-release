@@ -10,6 +10,7 @@ async function run() {
     const files = core.getInput('files').split(',');
     const shouldCommit = core.getBooleanInput('should_commit');
     const pluginPath = core.getInput('plugin_path');
+    const surecartReleasePath = core.getInput('surecart_release_path');
     const token = core.getInput('github_token', { required: true });
 
     const octokit = github.getOctokit(token);
@@ -48,11 +49,17 @@ async function run() {
     };
 
     const gitApi = {
-      async commit() {
+      async setupCommit() {
         await exec('git', ['config', 'user.name', 'github-actions']);
         await exec('git', ['config', 'user.email', 'github-actions@github.com']);
+      },
+      async addPluginFile() {
         await exec('git', ['add', pluginPath]);
-
+      },
+      async addSureCartReleaseFile() {
+        await exec('git', ['add', surecartReleasePath]);
+      },
+      async commit() {
         let commitOutput = '';
         try {
           await exec('git', ['commit', '-m', `Bump version to ${version}`], {
@@ -123,6 +130,7 @@ async function run() {
       files,
       shouldCommit,
       pluginPath,
+      surecartReleasePath,
     });
 
     const result = await releaseCreator.createRelease();
