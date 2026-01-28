@@ -178,9 +178,7 @@ describe('Git User Configuration', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     const execCalls = mockExec.exec.mock.calls;
-    const gitConfigCalls = execCalls.filter(
-      (call) => call[0] === 'git' && call[1][0] === 'config'
-    );
+    const gitConfigCalls = execCalls.filter((call) => call[0] === 'git' && call[1][0] === 'config');
 
     expect(gitConfigCalls).toHaveLength(0);
   });
