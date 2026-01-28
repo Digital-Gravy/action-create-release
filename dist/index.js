@@ -34516,10 +34516,13 @@ async function run() {
       },
     };
 
+    const gitUserName = core.getInput('git_user_name') || 'github-actions';
+    const gitUserEmail = core.getInput('git_user_email') || 'github-actions@github.com';
+
     const gitApi = {
       async setupCommit() {
-        await exec('git', ['config', 'user.name', 'github-actions']);
-        await exec('git', ['config', 'user.email', 'github-actions@github.com']);
+        await exec('git', ['config', 'user.name', gitUserName]);
+        await exec('git', ['config', 'user.email', gitUserEmail]);
       },
       async addPluginFile() {
         await exec('git', ['add', pluginPath]);
