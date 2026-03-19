@@ -4,7 +4,7 @@
   "description": "GitHub Action to create a GitHub release",
   "main": "src/index.js",
   "scripts": {
-    "build": "ncc build src/index.js -o dist",
+    "build": "esbuild src/index.js --bundle --platform=node --target=node20 --outfile=dist/index.js --conditions=import --format=cjs",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint .",
@@ -21,13 +21,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.10.1",
-    "@actions/github": "^6.0.0",
     "semver": "^7.6.3"
   },
   "devDependencies": {
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^9.0.0",
     "@types/jest": "^29.5.11",
     "@vercel/ncc": "^0.38.1",
+    "esbuild": "^0.27.4",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^27.6.0",
